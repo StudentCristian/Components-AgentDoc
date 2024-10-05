@@ -1,0 +1,173 @@
+<!-- templates/upload_form.html -->
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Subir Archivo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        .container {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 600px;
+            text-align: center;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 1rem;
+        }
+        .upload-area {
+            border: 2px dashed #007bff;
+            border-radius: 8px;
+            padding: 2rem;
+            margin-bottom: 1rem;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .upload-area:hover {
+            background-color: #e7f3ff;
+        }
+        .upload-area p {
+            margin: 0.5rem 0;
+            color: #666;
+        }
+        .upload-area .browse-btn {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .upload-area .browse-btn:hover {
+            background-color: #0056b3;
+        }
+        input[type="file"] {
+            display: none; /* Oculta el botón de entrada de archivo */
+        }
+        input[type="submit"] {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        input[type="submit"]:hover {
+            background-color: #0056b3;
+        }
+        .message {
+            margin-top: 1rem;
+            padding: 1rem;
+            border-radius: 4px;
+            display: none; /* Oculta el mensaje por defecto */
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+    <script>
+        function triggerFileUpload() {
+            document.getElementById('file').click();
+        }
+
+        function handleFileSelect(event) {
+            const fileInput = document.getElementById('file');
+            const fileName = fileInput.files[0] ? fileInput.files[0].name : 'Ningún archivo seleccionado';
+            document.getElementById('file-name').innerText = fileName;
+        }
+
+        // Manejo de arrastrar y soltar
+        function handleDragOver(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            event.dataTransfer.dropEffect = 'copy'; // Cambia el cursor al arrastrar
+        }
+
+        function handleDrop(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            const fileInput = document.getElementById('file');
+            const files = event.dataTransfer.files;
+            if (files.length > 0) {
+                fileInput.files = files; // Asigna los archivos arrastrados al input
+                handleFileSelect(); // Actualiza el nombre del archivo
+            }
+        }
+
+        function showMessage(message, isSuccess) {
+            const messageBox = document.getElementById('message');
+            messageBox.innerText = message;
+            messageBox.className = 'message ' + (isSuccess ? 'success' : 'error');
+            messageBox.style.display = 'block';
+
+            // Ocultar el mensaje después de 3 segundos
+            setTimeout(() => {
+                messageBox.style.display = 'none';
+            }, 3000);
+        }
+
+        function handleSubmit(event) {
+            event.preventDefault(); // Evita el envío del formulario
+            const formData = new FormData(event.target);
+
+            fetch('/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showMessage(data.message, true);
+                } else {
+                    showMessage(data.message, false);
+                }
+            })
+            .catch(error => {
+                showMessage('Error al subir el archivo', false);
+            });
+        }
+    </script>
+</head>
+<body>
+    <div class="container">
+        <h1>Subir Archivo</h1>
+        <form action="/upload" method="post" enctype="multipart/form-data" onsubmit="handleSubmit(event)">
+            <div class="upload-area" 
+                 onclick="triggerFileUpload()" 
+                 ondragover="handleDragOver(event)" 
+                 ondrop="handleDrop(event)">
+                <p>Arrastra tus archivos aquí o</p>
+                <button type="button" class="browse-btn" onclick="triggerFileUpload(); event.stopPropagation();">Seleccionar archivo</button>
+                <p id="file-name">Ningún archivo seleccionado</p>
+                <input type="file" name="file" id="file" accept=".doc,.docx" required onchange="handleFileSelect(event)">
+            </div>
+            <input type="submit" value="Subir">
+            <div id="message" class="message"></div>
+        </form>
+    </div>
+</body>
+</html>

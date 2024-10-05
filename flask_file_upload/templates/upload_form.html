@@ -1,0 +1,200 @@
+<!-- templates/upload_form.html -->
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Subir Archivo</title>
+    <style>
+        /* Estilos existentes */
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        .container {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 600px;
+            text-align: center;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 1rem;
+        }
+        .upload-area {
+            border: 2px dashed #007bff;
+            border-radius: 8px;
+            padding: 2rem;
+            margin-bottom: 1rem;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .upload-area:hover {
+            background-color: #e7f3ff;
+        }
+        input[type="file"] {
+            display: none; /* Oculta el botón de entrada de archivo */
+        }
+        input[type="submit"], .btn {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            margin-top: 0.5rem; /* Espacio entre botones */
+        }
+        input[type="submit"]:hover, .btn:hover {
+            background-color: #0056b3;
+        }
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 0.5rem 0;
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+        }
+        .file-item button {
+            width: auto; /* Ajusta el ancho del botón "Eliminar" */
+            margin-left: 1rem; /* Espacio entre el nombre del archivo y el botón */
+        }
+        .message {
+            margin-top: 1rem;
+            padding: 1rem;
+            border-radius: 4px;
+            display: none; /* Oculta el mensaje por defecto */
+        }
+    </style>
+    <script>
+        let filesToUpload = [];
+
+        function triggerFileUpload() {
+            document.getElementById('file').click();
+        }
+
+        function handleFileSelect(event) {
+            const fileInput = document.getElementById('file');
+            const files = fileInput.files;
+
+            for (let i = 0; i < files.length; i++) {
+                // Si el archivo ya está en la lista, lo eliminamos
+                filesToUpload = filesToUpload.filter(file => file.name !== files[i].name);
+                filesToUpload.push(files[i]);
+                addFileToList(files[i]);
+            }
+            updateUploadButtonState();
+        }
+
+        function addFileToList(file) {
+            const fileList = document.getElementById('file-list');
+            const fileItem = document.createElement('div');
+            fileItem.className = 'file-item';
+            fileItem.innerHTML = `
+                <span>${file.name}</span>
+                <button class="btn" onclick="removeFile('${file.name}')">Eliminar</button>
+            `;
+            fileList.appendChild(fileItem);
+        }
+
+        function removeFile(fileName) {
+            filesToUpload = filesToUpload.filter(file => file.name !== fileName);
+            updateFileList();
+            updateUploadButtonState();
+            resetFileInput(); // Restablece el input de tipo file
+        }
+
+        function resetFileInput() {
+            const fileInput = document.getElementById('file');
+            fileInput.value = ''; // Restablece el valor del input
+        }
+
+        function updateFileList() {
+            const fileList = document.getElementById('file-list');
+            fileList.innerHTML = ''; // Limpia la lista de archivos
+            filesToUpload.forEach(file => addFileToList(file));
+        }
+
+        function updateUploadButtonState() {
+            const submitButton = document.querySelector('input[type="submit"]');
+            submitButton.disabled = filesToUpload.length === 0;
+        }
+
+        function handleDrop(event) {
+            event.preventDefault(); // Evita el comportamiento por defecto
+            const dt = event.dataTransfer;
+            const files = dt.files;
+
+            for (let i = 0; i < files.length; i++) {
+                // Si el archivo ya está en la lista, lo eliminamos
+                filesToUpload = filesToUpload.filter(file => file.name !== files[i].name);
+                filesToUpload.push(files[i]);
+                addFileToList(files[i]);
+            }
+            updateUploadButtonState();
+        }
+
+        function handleDragOver(event) {
+            event.preventDefault(); // Evita el comportamiento por defecto
+        }
+
+        function handleSubmit(event) {
+            event.preventDefault(); // Evita el envío del formulario
+            const formData = new FormData();
+            filesToUpload.forEach(file => {
+                formData.append('file', file);
+            });
+
+            fetch('/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message); // Muestra un mensaje de éxito
+                    filesToUpload = [];
+                    document.getElementById('file-list').innerHTML = ''; // Limpia la lista de archivos
+                } else {
+                    alert(data.message); // Muestra un mensaje de error
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error al subir el archivo');
+            });
+        }
+    </script>
+</head>
+<body>
+    <div class="container">
+        <h1>Subir Archivo</h1>
+        <form action="/upload" method="post" enctype="multipart/form-data" onsubmit="handleSubmit(event)">
+            <div class="upload-area" 
+                 onclick="triggerFileUpload()" 
+                 ondragover="handleDragOver(event)" 
+                 ondrop="handleDrop(event)">
+                <p>Arrastra tus archivos aquí o</p>
+                <button type="button" class="browse-btn btn" onclick="event.stopPropagation(); triggerFileUpload();">Seleccionar archivo</button>
+                <input type="file" name="file" id="file" accept=".doc,.docx" required onchange="handleFileSelect(event)">
+            </div>
+            <div id="file-list" class="file-list"></div>
+            <input type="submit" value="Subir" disabled>
+            <div id="message" class="message"></div>
+        </form>
+    </div>
+</body>
+</html>
